@@ -1,0 +1,20 @@
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  - flake8
+  - gputil
+  - pip:
+    - black
+    - mypy
+    - vulture
+    - pytest
+    - isort
+    - jupyterlab
+    - ipywidgets
+    - widgetsnbextension
+    - pandas-profiling
+    - nni
