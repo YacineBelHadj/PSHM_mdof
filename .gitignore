@@ -222,3 +222,7 @@ data/processed/*
 .mypy_cache
 .pytest_cache
 **/.DS_Store
+
+# Ignore dynaconf secret files
+.secrets.*
+data/*
