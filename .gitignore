@@ -226,3 +226,6 @@ data/processed/*
 # Ignore dynaconf secret files
 .secrets.*
 data/*
+configs/*
+# Ignore model files
+model/*

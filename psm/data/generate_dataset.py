@@ -38,26 +38,27 @@ exc_location =env_exc_params['exc_location']
 path_data = Path(settings.data.path['raw'])/args.settings
 
 def create_table(c):
-    c.execute("""CREATE TABLE systems (
+    c.execute("""CREATE TABLE IF NOT EXISTS systems (
               id INTEGER PRIMARY KEY,
               name TEXT,
-              mass BLOB, stiffness BLOB, damping BLOB,)
+              mass BLOB, stiffness BLOB, damping BLOB)
             """)
     c.execute(""" 
-             CREATE TABLE simulation 
+             CREATE TABLE IF NOT EXISTS simulation 
              (id INTEGER PRIMARY KEY,
              system_id INTEGER,
              name TEXT,
              latent REAL,
              amplitude REAL,
              anomaly_level REAL,
+             stage TEXT,
              resonance_frequency BLOB,
              TDD_input BLOB,
              TDD_output BLOB,
              FOREIGN KEY(system_id) REFERENCES systems(id))
              """)
     c.execute("""
-            CREATE TABLE metadata
+            CREATE TABLE IF NOT EXISTS metadata
             (dt REAL, t_end REAL, 
             std_latent REAL , latent_value REAL,
             input_location REAL,
@@ -74,7 +75,10 @@ def latent_var(mean:float, std:float):
     return latent
 def create_list_anomaly_level():
     anomaly_levels = [0]*1200 + [i/100 for i in range(1, 14,2) for _ in range(200)]
-    return anomaly_levels
+    stage =['train']*1000 + ['test']*200 + ['anomaly']* 1400
+    assert len(anomaly_levels) == len(stage)
+    return anomaly_levels , stage
+
 amp, loc,shape = env_exc_params['exc_amp'], env_exc_params['exc_loc'], env_exc_params['exc_shape']
 lat_mean , lat_std = env_exc_params['lat_mu'], env_exc_params['lat_std']
 
@@ -95,28 +99,16 @@ def main():
     path_data.mkdir(parents=True, exist_ok=True)
 
     db_path = path_data/f'{args.settings.lower()}.db'
-    anomaly_levels = create_list_anomaly_level()
+    anomaly_levels,stage = create_list_anomaly_level()
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
 
-    if db_path.exists():
-        logging.warning(f'Database already exists at {db_path}')
-        # ask the user if he wants to overwrite the database
-        answer = input('Do you want to overwrite the database ? (y/n)')
-        if answer.lower() != 'y':
-            # user chose not to overwrite, close connection and exit script
-            conn.close()
-            logging.info('Exiting without overwriting existing database.')
-            exit()
-
-        # delete the existing database
-        db_path.unlink()
         
     # at this point, we're either working with a new database or overwriting an existing one
     create_table(c)
     logging.info(f'Database created at {db_path}')
 
-    for a in tqdm(anomaly_levels):
+    for a,st in tqdm(zip(anomaly_levels,stage), total=len(stage)):
         amp = get_amplitude()
         lat = get_latent()
         manipulation = [{'type':'environment','latent_value':lat,'coefficients':'load'}]
@@ -141,14 +133,14 @@ def main():
             output_data = sim_data[name]['output'].tobytes()
             res_freq_system = res_freq[name].tobytes()
 
-            systems_insert_data.append((name, mass, stiffness, damping, lat, amp))
-            simulation_insert_data.append((name,lat,amp,a, res_freq_system, input_data, output_data))
+            systems_insert_data.append((name, mass, stiffness, damping))
+            simulation_insert_data.append((name,lat,amp,a,st, res_freq_system, input_data, output_data))
         
-        c.executemany("""INSERT INTO systems (name, mass, stiffness, damping, latent, amplitude)
-                        VALUES (?, ?, ?, ?, ?, ?)""", systems_insert_data)
+        c.executemany("""INSERT INTO systems (name, mass, stiffness, damping)
+                        VALUES (?, ?, ?, ?)""", systems_insert_data)
 
-        c.executemany("""INSERT INTO simulation (name,latent,amplitude, anomaly_level, resonance_frequency, TDD_input, TDD_output)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)""", simulation_insert_data)
+        c.executemany("""INSERT INTO simulation (name,latent,amplitude, anomaly_level,stage, resonance_frequency, TDD_input, TDD_output)
+                        VALUES (?, ?, ?, ?, ?, ?, ?,?)""", simulation_insert_data)
 
         conn.commit()
     # save the metadata

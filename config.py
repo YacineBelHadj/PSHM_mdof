@@ -1,5 +1,7 @@
 
 from dynaconf import Dynaconf
+from pathlib import Path
+from typing import List
 
 settings = Dynaconf(
     envvar_prefix="DYNACONF",

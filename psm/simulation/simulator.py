@@ -2,19 +2,6 @@ import numpy as np
 from scipy import signal
 from psm.simulation.mdof_system import MdofSystem
 from psm.simulation.population import Population
-import logging
-
-# Create logger and set level
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-# Create file handler and set format
-file_handler = logging.FileHandler('logs/generate_data.log')
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-file_handler.setFormatter(formatter)
-
-# Add file handler to logger
-logger.addHandler(file_handler)
 
 
 class Simulator:
@@ -32,7 +19,6 @@ class Simulator:
                 sys = MdofSystem(**sys_param)
                 u, (t_out_,y,x_)=sys.simulate_white_noise(t=t,location=location,amplitude=amplitude)
                 if np.isnan(y).any() or y.max() > amplitude * 1e3:
-                    logger.warning(f'Nan in simulation {sys_name}')
                     return None
 
                 data[sys_name] = {'time':t,'input':u,'output':y}

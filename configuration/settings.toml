@@ -2,6 +2,7 @@
 [DATA.PATH]
 raw = "/home/yacine/Documents/PhD/Code/GitProject/PBSHM_mdof/data/raw"
 processed = "/home/yacine/Documents/PhD/Code/GitProject/PBSHM_mdof/data/processed"
+model = "/home/yacine/Documents/PhD/Code/GitProject/PBSHM_mdof/model"
 
 [SIMULATION]
 [SIMULATION.settings1]
@@ -9,7 +10,11 @@ simu_params = {dt = 0.0025, t_end = 20}
 env_exc_params = {lat_std=20, lat_mu =60, exc_location = 7, exc_amp = 5,exc_loc=10 , exc_shape=1.9}
 population_param = "/home/yacine/Documents/PhD/Code/GitProject/PBSHM_mdof/configuration/systems_healthy.json"
 anomaly_loc = 5
+resulting_mean_rms = 90
 
 [PROCESSING]
 [PROCESSING.settings1]
-psd_params={acc_loc= 17, nperseg=1024}
+nperseg=1024
+acc_loc =17
+filter_params={order=4,upper=150}
+snr = "None"
