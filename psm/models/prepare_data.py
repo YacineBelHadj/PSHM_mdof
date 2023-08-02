@@ -87,7 +87,7 @@ def build_query(anomaly_level, system_name,stage):
     """
     params = []
     clauses = []
-    if anomaly_level != '*':
+    if anomaly_level is not None and anomaly_level != '*':
         if isinstance(anomaly_level, list):
             clause = " OR ".join("anomaly_level=?" for _ in anomaly_level)
             params.extend(anomaly_level)
@@ -103,6 +103,7 @@ def build_query(anomaly_level, system_name,stage):
         params.append(stage)
     query = " AND ".join(clauses) if clauses else "1"  # If no conditions, use "1" to get all data
     return query, tuple(params)
+
 
 
 class PSDDataset(Dataset):
@@ -123,7 +124,7 @@ class PSDDataset(Dataset):
         break   
     """
     def __init__(self, database_path: Union[str, Path], system_name: str = None,
-                 anomaly_level: Union[float, List[float], str] = 0.0,
+                 anomaly_level: Union[float, List[float], str] = None,
                  transform=None, transform_label=None, preload: bool = False,
                  stage=None):
         
@@ -137,6 +138,7 @@ class PSDDataset(Dataset):
         self.c = self.conn.cursor()
 
         self.query, self.params = build_query(anomaly_level, system_name,stage)
+        print (self.query, self.params)
         self.c.execute(f"SELECT id,stage FROM processed_data WHERE {self.query}", self.params)
         fetched_data = self.c.fetchall()
         self.keys = [d[0] for d in fetched_data]
@@ -173,9 +175,9 @@ class PSDDataset(Dataset):
         psd = torch.from_numpy(psd).float()
         
         if self.stage == 'anomaly':
-            return psd, system_name, row[2]
-        
-        return psd, system_name
+            return psd, system_name, anomaly_level
+        else :
+            return psd, system_name
     
 
 ######################
@@ -294,15 +296,53 @@ class PSDNotchDataset(Dataset):
 
         return psd, system_name, amplitude_notch, f_affected
     
-    def get_original(self) -> Tuple[torch.Tensor, np.ndarray]:
-        query, param = build_query_system(self.system_name)
-        self.c.execute(f"SELECT PSD, system_name FROM ORIGINAL_PSD WHERE {query}", param)
+class PSDNotchDatasetOriginal(Dataset):
+    def __init__(self,database_path : Union[str, Path], system_name : str = '*',
+                    transform=None, transform_label=None, preload:bool=False):
+                 
+        self.database_path = database_path
+        self.system_name = system_name
+        self.transform = transform
+        self.transform_label = transform_label
+        self.preload = preload
+        self.conn = sqlite3.connect(self.database_path)
+        query, params = build_query_system(self.system_name)
+        self.c = self.conn.cursor()
+        self.c.execute(f"SELECT id FROM ORIGINAL_PSD WHERE {query}", params)
+        self.keys = [row[0] for row in self.c.fetchall()]
+
+        if self.preload:
+            self.data = self._preload_data()
+        
+    def __len__(self):
+        return len(self.keys)
+
+    def _preload_data(self):
+        # Convert list of keys to a format suitable for SQL IN keyword
+        keys_str = ', '.join('?' for _ in self.keys)
+
+        # Execute the query using the keys_str and self.keys
+        self.c.execute(f"SELECT PSD, system_name FROM ORIGINAL_PSD WHERE id IN ({keys_str})", self.keys)
         data = self.c.fetchall()
+        return data
+    
+    def __getitem__(self,index:int):
+        if self.preload:
+            row = self.data[index]
+        else:
+            self.c.execute(f"SELECT PSD, system_name FROM ORIGINAL_PSD WHERE id=?", (self.keys[index],))
+            row = self.c.fetchone()
 
-        # apply transform and label transform
-        psds = [self.transform(np.frombuffer(row[0], dtype=np.float64)) if self.transform else np.frombuffer(row[0], dtype=np.float64) for row in data]
-        system_names = [self.transform_label(row[1]) if self.transform_label else row[1] for row in data]
+        psd = np.frombuffer(row[0], dtype=np.float64)
+        system_name = row[1]
 
-        psds_tensor = torch.from_numpy(np.stack(psds)).float()
+        if self.transform:
+            psd = self.transform(psd)
 
-        return psds_tensor, system_names
+        if self.transform_label:
+            system_name = self.transform_label(system_name)
+
+        psd = torch.from_numpy(psd).float()
+
+        return psd, system_name , 0 , 0
+        

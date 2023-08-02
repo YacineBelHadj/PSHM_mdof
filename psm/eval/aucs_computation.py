@@ -2,7 +2,7 @@ from sklearn.metrics import roc_auc_score
 import pandas as pd
 import numpy as np
 
-def compute_auc(healthy, anomaly):
+def compute_auc(anomaly,healthy):
     """
     Function to compute AUC-ROC from healthy and anomalous scores.
 
@@ -58,7 +58,7 @@ def compute_auc_for_levels(df,score_column='log_likelihood'):
             anomaly = -system_df[system_df['anomaly_level'] == level][score_column].values
 
             # Compute AUC using the defined function
-            auc = compute_auc(healthy, anomaly)
+            auc = compute_auc(healthy=healthy, anomaly=anomaly)
 
             auc_dict['system_name'].append(system)
             auc_dict['anomaly_level'].append(level)
