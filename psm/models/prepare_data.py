@@ -256,6 +256,7 @@ class PSDNotchDataset(Dataset):
         self.c = self.conn.cursor()
         
         query, params = build_query_system(self.system_name)
+        print (query, params)
         self.c.execute(f"SELECT id FROM VAS_notch WHERE {query}", params)
         self.keys = [row[0] for row in self.c.fetchall()]
 
@@ -307,6 +308,7 @@ class PSDNotchDatasetOriginal(Dataset):
         self.preload = preload
         self.conn = sqlite3.connect(self.database_path)
         query, params = build_query_system(self.system_name)
+        print (query, params)
         self.c = self.conn.cursor()
         self.c.execute(f"SELECT id FROM ORIGINAL_PSD WHERE {query}", params)
         self.keys = [row[0] for row in self.c.fetchall()]

@@ -2,7 +2,6 @@ import sqlite3
 import numpy as np
 import sqlite3
 import numpy as np
-import comet_ml
 # load the database path
 from config import settings
 from pathlib import Path

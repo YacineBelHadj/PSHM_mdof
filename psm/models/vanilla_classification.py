@@ -12,7 +12,8 @@ class DenseSignalClassifier(nn.Module):
                   dropout_rate:float=0.2, 
                  batch_norm:bool=True, 
                  activation=nn.ReLU(), l1_reg:float=0.01, 
-                 temperature:float=1.0):
+                 temperature:float=1.0,
+                 bias:bool=True):
         super(DenseSignalClassifier, self).__init__()
 
         self.temperature = temperature
@@ -21,7 +22,7 @@ class DenseSignalClassifier(nn.Module):
         layers = []
         in_features = input_dim
         for units in dense_layers:
-            layers.append(nn.Linear(in_features, units))
+            layers.append(nn.Linear(in_features, units, bias=bias))
             if batch_norm:
                 layers.append(nn.BatchNorm1d(units))
             layers.append(activation)
@@ -34,7 +35,7 @@ class DenseSignalClassifier(nn.Module):
     def forward(self, x ):
         features = self.encoder(x)
         logits = self.classifier(features) 
-        final_layer = F.softmax(logits, dim=1)
+        final_layer = F.softmax(logits/self.temperature, dim=1)
         return final_layer, logits
        
         
@@ -48,7 +49,8 @@ class DenseSignalClassifier(nn.Module):
 class DenseSignalClassifierModule(pl.LightningModule):
     def __init__(self, num_classes:int, input_dim:int, dense_layers:list, 
                  dropout_rate:float=0.2, batch_norm:bool=True, activation=nn.ReLU(),
-                 l1_reg:float=0.01, temperature:float=1.0, lr:float=0.001):
+                 l1_reg:float=0.01, temperature:float=1.0, lr:float=0.001,
+                 bias:bool=True):
         super().__init__()
 
         self.model = DenseSignalClassifier(num_classes=num_classes, 
@@ -58,7 +60,8 @@ class DenseSignalClassifierModule(pl.LightningModule):
                                            batch_norm=batch_norm, 
                                            activation=activation,
                                            l1_reg=l1_reg, 
-                                           temperature=temperature)
+                                           temperature=temperature,
+                                           bias=bias)
         self.save_hyperparameters(ignore=['model'])
         self.lr = lr
         self.criterion = nn.CrossEntropyLoss()
