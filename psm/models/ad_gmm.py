@@ -13,7 +13,7 @@ class AD_GMM():
         self.gmm = GM(n_components=num_classes, covariance_type='full')
         self.model = model
     
-    def fit(self, dataloader):
+    def load_all(self, dataloader):
         features = []
         self.model.eval()
         with torch.no_grad():
@@ -23,6 +23,12 @@ class AD_GMM():
                 feature = feature.detach().numpy()
                 features.append(feature)
         features = np.concatenate(features)
+        return features
+    
+    
+    def fit(self, dataloader):
+        features = self.load_all(dataloader)
+
         self.gmm.fit(features)
     
     def predict(self, data):

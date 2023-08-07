@@ -53,13 +53,7 @@ class Benchmark_SA():
             'log_likelihood': log_likelihoods
         })
         result = compute_auc_for_levels(df_res)
-        auc_03 = result[0.03]
-        mean_auc_03 = auc_03.mean()
-
-        auc_03 = {f"auc_03_{k}":v for k,v in auc_03.items()}
-
-        res_dict = {'all_aucs':result, 'mean_auc_03':mean_auc_03, 'auc_03':auc_03}
-        return res_dict
+        return result
  ##########
 import pandas as pd 
 import matplotlib.pyplot as plt
@@ -131,7 +125,7 @@ def compute_auc_heatmap_weighted(heatmap_data):
     aucs = heatmap_data.values
     weighted_auc = inverse_amplitude@aucs
     weighted_auc = np.sum(weighted_auc)/ np.sum(inverse_amplitude*heatmap_data.shape[1])
-    return {'weighted_auc':weighted_auc}
+    return {'weighted_auc_VAS':weighted_auc}
 
 def compute_auc_heatmap_metrics(heatmap_data):
     heatmap_data = heatmap_data[heatmap_data.index!=0]
@@ -140,7 +134,7 @@ def compute_auc_heatmap_metrics(heatmap_data):
     harmonic_mean = len(flat_df)/np.sum(1/flat_df)
     mean = np.mean(flat_df)
     geometric_mean = np.prod(flat_df)**(1/len(flat_df))
-    return {"harmonic_mean":harmonic_mean, "mean":mean, "geometric_mean":geometric_mean}
+    return {"VAS_hm":harmonic_mean, "VAS_m":mean, "VAS_gm":geometric_mean}
 
 # Class Definitions
 class Benchmark_VAS:
@@ -193,7 +187,6 @@ class Benchmark_VAS:
             metrics_list[f'system_{system_number}'] = metrics
 
         #mean_areas = np.mean(list(areas.values()))
-        global_metrics= pd.DataFrame(metrics_list).apply(lambda x: len(x)/np.sum(1/x), axis=1).to_dict()
-        global_metrics= {f"global_{k}":v for k,v in global_metrics.items()}
-        res={'axs':axs, 'auc_heatmap':metrics_list,'global_metrics':global_metrics}
+
+        res={'axs':axs, 'individual_metric':metrics_list}
         return res

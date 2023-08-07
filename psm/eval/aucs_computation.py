@@ -67,5 +67,7 @@ def compute_auc_for_levels(df,score_column='log_likelihood'):
     # Convert the dictionary to DataFrame and return
     auc_results_df = pd.DataFrame(auc_dict)
     auc_results_df=auc_results_df.pivot(index='system_name', columns='anomaly_level', values='auc')
+    # change the index from 0 ==> system_0
+    auc_results_df.index = [f'system_{i}' for i in auc_results_df.index]
 
     return auc_results_df

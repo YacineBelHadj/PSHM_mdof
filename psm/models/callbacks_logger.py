@@ -2,6 +2,7 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, Learning
 from pytorch_lightning.loggers import CometLogger
 from config import settings
 from pathlib import Path
+import pandas as pd
 
 model_path = Path(settings.data.path["model"])
 
@@ -36,3 +37,20 @@ def create_callbacks_loggers(project_name_in_settings:str= 'project_name1'):
                logger)
 
     return res
+
+def log_metrics(logger,test1,test2):
+    df_perf = pd.DataFrame(test2['individual_metric'])
+    df_auc=pd.DataFrame(test1[0.03])
+    df_auc.columns = ['AUC_0.03']
+    df_perf = pd.concat([df_perf,df_auc.T],axis=0)
+    # log the dataframe in html and csv format
+    logger.experiment.log_html(df_perf.to_html())
+    logger.experiment.log_asset_data(df_perf.to_csv(),name="aucs.csv")
+    # log global metrics as metrics
+    df_mean = df_perf.mean(axis=1)
+    for key in df_mean.keys():
+        logger.experiment.log_metric('mean_'+key,df_mean[key])
+    # log the axs 
+    for n,ax in test2['axs'].items():
+        logger.experiment.log_figure(figure_name=n,figure=ax.get_figure())
+    return df_mean['weighted_auc_VAS'], df_mean['AUC_0.03']
