@@ -1,12 +1,13 @@
 from setuptools import setup, find_packages
-  
+
 setup(
     name='psm',
     version='0.1',
-    description='PBSHM_mdof anomaly detection using spectra and deep learning ',
+    description='PBSHM_mdof anomaly detection using spectra and deep learning',
     author='Yacine Bel-Hadj',
     author_email='yacine.be-hadj@vub.be',
-    packages=find_packages(),
+    packages=find_packages(include=['psm', 'psm.*']),
+    package_data={'': ['config.py']},
     install_requires=[
         'numpy',
         'pandas',
@@ -14,5 +15,6 @@ setup(
         'matplotlib',
         'pytorch-lightning',
     ],
-
 )
+
+

@@ -5,8 +5,10 @@ from pathlib import Path
 import pandas as pd
 
 model_path = Path(settings.data.path["model"])
+log_path = Path(settings.local_comet["path"])
 
-def create_callbacks_loggers(project_name_in_settings:str= 'project_name1'):
+def create_callbacks_loggers(project_name_in_settings:str= 'project_name1',
+                             offline:bool = False):
     """ Create callbacks and loggers for the model
     callbacks: EarlyStopping, ModelCheckpoint, LearningRateMonitor
     loggers: CometLogger
@@ -28,13 +30,23 @@ def create_callbacks_loggers(project_name_in_settings:str= 'project_name1'):
 
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
 
-    logger = CometLogger(
-        api_key=settings.comet['api_key'],
-        workspace=settings.comet['workspace'],
-        project_name=settings.comet[project_name_in_settings])
+    if offline:
+        offline_dir = log_path
+        offline_dir.mkdir(parents=True, exist_ok=True)
+        logger = CometLogger(
+            api_key= settings.comet['api_key'],
+            workspace=settings.comet['workspace'],
+            project_name=settings.comet[project_name_in_settings],
+            offline=True,
+            save_dir=offline_dir)
+    else :
+        logger = CometLogger(
+            api_key=settings.comet['api_key'],
+            workspace=settings.comet['workspace'],
+            project_name=settings.comet[project_name_in_settings])
 
     res = ([early_stop_callback, checkpoint_callback, lr_monitor],
-               logger)
+                logger)
 
     return res
 

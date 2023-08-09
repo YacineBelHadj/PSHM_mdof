@@ -62,7 +62,7 @@ class DenseSignalClassifierModule(pl.LightningModule):
                                            l1_reg=l1_reg, 
                                            temperature=temperature,
                                            bias=bias)
-        self.save_hyperparameters(ignore=['model'])
+        self.save_hyperparameters(ignore=['model','activation'])
         self.lr = lr
         self.criterion = nn.CrossEntropyLoss()
         self.train_acc = torchmetrics.Accuracy(task='multiclass', num_classes=num_classes)
@@ -84,11 +84,15 @@ class DenseSignalClassifierModule(pl.LightningModule):
 
         # Compute accuracy
         acc = self.train_acc(prediction.argmax(dim=1), target)
-        self.log(f'{stage}_loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
-        self.log(f'{stage}_acc', acc, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        self.log(f'{stage}_loss', loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        self.log(f'{stage}_acc', acc, on_step=False, on_epoch=True, prog_bar=False, logger=True)
         return {'loss': loss, 'feature':feature, 'target':target, 'prediction':prediction}
+    
+    def on_training_epoch_end(self):
+        print (f'training acc {self.train_acc.compute()}')
 
-
+    def on_validation_epoch_end(self):
+        print (f'validation acc {self.train_acc.compute()}')
 
     def training_step(self, batch, batch_idx):
         return self._common_step(batch, batch_idx, 'train')

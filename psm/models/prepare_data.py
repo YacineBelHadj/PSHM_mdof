@@ -213,11 +213,13 @@ class PSDDataModule(pl.LightningDataModule):
             print(f"Shape of label from train_dl: {label.shape}")
             break
     """
-    def __init__(self, database_path, transform=None, transform_label=None, batch_size:int = 64):
+    def __init__(self, database_path, transform=None, transform_label=None, batch_size:int = 64
+                 ,num_workers:int = 1):
         super().__init__()
         self.batch_size = batch_size
         self.dataset = functools.partial(PSDDataset, database_path=database_path,
                                          transform=transform, transform_label=transform_label)
+        self.num_workers = num_workers
 
     def setup(self, stage=None): 
         self.full_train_dataset = self.dataset(anomaly_level=0, preload=True, stage='train')
@@ -228,13 +230,13 @@ class PSDDataModule(pl.LightningDataModule):
         self.test_dataset = self.dataset(anomaly_level=0, preload=True, stage='test')
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False)
+        return DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
 
     def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False)
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
     
 ####
 
