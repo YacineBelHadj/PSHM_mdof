@@ -1,0 +1,1 @@
+In this project we use classification model for anomaly detection, the model is training with the task of discriminating between different system and then the learned embedding is used for anomaly detection using GMM + energy function 
