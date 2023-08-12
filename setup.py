@@ -14,6 +14,12 @@ setup(
         'scipy',
         'matplotlib',
         'pytorch-lightning',
+        'comet-ml',
+        'dynaconf',
+        'joblib',
+        'scikit-learn',
+        'tqdm',
+        
     ],
 )
 

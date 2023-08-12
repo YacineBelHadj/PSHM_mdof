@@ -6,7 +6,7 @@ the we use the benchmarking tool to optimize the hyperparameters
 """
 import comet_ml 
 import pytorch_lightning as pl
-from psm.models.ad_gmm import AD_GMM
+from psm.models.ad_systems import AD_GMM
 import torch.nn as nn 
 import torch
 import optuna
