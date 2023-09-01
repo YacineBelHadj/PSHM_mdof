@@ -1,0 +1,16 @@
+batch_norm: true
+bias: true
+dense_layers:
+- 512
+- 248
+- 248
+- 128
+- 64
+- 32
+dropout_rate: 0
+en_coef: 0.3
+input_dim: 385
+l1_reg: 0.0001
+lr: 0.005
+num_classes: 20
+temperature: 1.0

@@ -85,7 +85,7 @@ class Population:
             pickle.dump(self.systems_params, f)
             
 
-
+### define the system matrices 
 def build_system_matrices(system_params: dict):
     m = system_params['mass']
     k = system_params['stiffness']

@@ -109,7 +109,9 @@ class AD_GMM(AD_system):
     
 class AD_energy(AD_system):
     def __init__(self,model):
-        self.model = model
+        self.model = model.model
+        # check if datamodule 
+        
     
     def fit(self,data):
         pass
@@ -117,9 +119,7 @@ class AD_energy(AD_system):
     def predict(self, data):
         if data.ndim == 1:
             data = data.reshape(1,-1)
-        trainer = pl.Traine()
-        energy= trainer.predict(self.model, data)
-        print('hi')
+        energy = self.model.get_energy(data)
         # Compute energy directly from the features
         energy = energy.detach().numpy()
         return energy

@@ -91,8 +91,8 @@ def main():
     conn_psd = sqlite3.connect(database_processed_path)
     c_psd = conn_psd.cursor()
     freq = load_freq_axis(database_processed_path)
-    f_affected_grid = np.arange(1,140,2)
-    amp_grid = np.arange(-0.3,0.35,0.05)
+    f_affected_grid = np.arange(1,140,0.5)
+    amp_grid = np.arange(-0.35,0.4,0.05)
     amp_grid = np.round(amp_grid,2)
     print(f'f_affected_grid: {f_affected_grid}, amp_grid: {amp_grid}')
 
