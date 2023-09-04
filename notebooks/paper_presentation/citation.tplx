@@ -1,0 +1,14 @@
+((*- extends 'article.tplx' -*))
+
+((* block author *))
+\author{Yacine Bel-Hadj}
+((* endblock author *))
+
+((* block title *))
+\title{(( title|e ))}
+((* endblock title *))
+
+((*block bibliography*))
+\bibliographystyle{unsrt}
+\bibliography{reference}
+((*endblock bibliography*))

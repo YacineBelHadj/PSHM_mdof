@@ -68,6 +68,7 @@ class AD_GMM(AD_system):
     def predict(self, data):
         if data.ndim == 1:
             data = data.reshape(1,-1)
+        self.model.eval()
         _, feature = self.model(data)
         feature = feature.detach().numpy()
         log_likelihood = self.gmm.score_samples(feature)
@@ -109,7 +110,7 @@ class AD_GMM(AD_system):
     
 class AD_energy(AD_system):
     def __init__(self,model):
-        self.model = model.model
+        self.model_en = model
         # check if datamodule 
         
     
@@ -119,7 +120,8 @@ class AD_energy(AD_system):
     def predict(self, data):
         if data.ndim == 1:
             data = data.reshape(1,-1)
-        energy = self.model.get_energy(data)
+        self.model_en.eval()
+        energy = self.model_en.get_energy(data)
         # Compute energy directly from the features
         energy = energy.detach().numpy()
         return energy

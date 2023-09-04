@@ -7,6 +7,7 @@ from functools import partial
 import numpy as np
 from scipy.integrate import simpson
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 from psm.eval.aucs_computation import compute_auc_for_levels , compute_auc
 from psm.utils.data.resonance_frequnecy import get_res_freq
@@ -35,13 +36,18 @@ class Benchmark_SA():
     def evaluate(self):
 
         system_names, anomaly_levels, log_likelihoods = [], [], []
-        for psd, system_name, anomaly_level in self.anomaly_dl:
+        for psd, system_name, anomaly_level in tqdm(self.anomaly_dl,
+                                                    desc = 'benchmarking_sa',
+                                                    total=len(self.anomaly_dl)):
             log_likelihood = self.ad_system.predict(psd)
             system_names.extend(system_name.tolist())
             anomaly_levels.extend(anomaly_level.tolist())
+            
             log_likelihoods.extend(log_likelihood)
         
-        for psd, system_name in self.test_dl:
+        for psd, system_name in tqdm(self.test_dl,
+                                     desc = 'benchmarking_sa',
+                                     total=len(self.test_dl)):
             log_likelihood = self.ad_system.predict(psd)
             system_names.extend(system_name.tolist())
             anomaly_levels.extend([0]*len(system_name))
@@ -151,7 +157,9 @@ class Benchmark_VAS:
         systems_names, f_notch, amplitude, log_likelihoods = [], [], [], [] 
 
         for dataLoader in [self.original_psd_dataloader, self.notched_psd_dataloader]:
-            for psd, sys_name, amplitude_notch,f_affect in dataLoader:
+            for psd, sys_name, amplitude_notch,f_affect in tqdm(dataLoader,
+                                                                desc = 'benchmarking_vas',
+                                                                total=len(dataLoader)):
                 log_likelihood = self.anomaly_detector.predict(psd)
                 systems_names.extend(sys_name.tolist())
                 log_likelihoods.extend(log_likelihood.tolist())
