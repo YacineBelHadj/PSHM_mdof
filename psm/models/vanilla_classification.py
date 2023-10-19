@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import CosineAnnealingLR
 import torchmetrics
 
 class DenseSignalClassifier(nn.Module):
@@ -89,16 +89,19 @@ class DenseSignalClassifierModule(pl.LightningModule):
         return {'loss': loss, 'feature':feature, 'target':target, 'prediction':prediction}
     
     def on_training_epoch_end(self):
-        print (f'training acc {self.train_acc.compute()}')
+        self.log('train_epoch_acc', self.train_acc.compute(), prog_bar=True, logger=True)
 
     def on_validation_epoch_end(self):
-        print (f'validation acc {self.train_acc.compute()}')
+        self.log('val_epoch_acc', self.val_acc.compute(), prog_bar=True, logger=True)
 
     def training_step(self, batch, batch_idx):
         return self._common_step(batch, batch_idx, 'train')
 
     def validation_step(self, batch, batch_idx):
-        return self._common_step(batch, batch_idx, 'val')['loss']
+        results = self._common_step(batch, batch_idx, 'val')
+        val_loss = results['loss']
+        self.log('val_step_loss', val_loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        return {'val_loss': val_loss}
 
     def test_step(self, batch, batch_idx):
         output = self._common_step(batch, batch_idx, 'test')
@@ -123,11 +126,13 @@ class DenseSignalClassifierModule(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, betas=(0.9, 0.999), eps=1e-07)
-        scheduler = {
-            'scheduler': ReduceLROnPlateau(optimizer, 'min'),
-            'monitor': 'val_loss',  # Metric to monitor
-            'interval': 'epoch',  # The scheduler will be updated after each epoch
-            'frequency': 1,  # The frequency of the scheduler updates in number of epochs
+        scheduler = CosineAnnealingLR(optimizer, T_max=20, eta_min=self.lr/20)  # T_max is the number of epochs after which the learning rate is restarted. Adjust accordingly.
+
+        # Since PyTorch Lightning expects a dictionary for multiple optimizers or schedulers
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'monitor': 'val_loss',  # Metric to monitor
+            }
         }
-        return {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": "val_loss"}
-    

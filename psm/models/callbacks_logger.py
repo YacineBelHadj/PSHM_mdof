@@ -15,7 +15,7 @@ def create_callbacks_loggers(project_name_in_settings:str= 'project_name1',
     return: List[callbacks], loggers"""
     early_stop_callback = EarlyStopping(
         monitor='val_loss',
-        patience=20,
+        patience=50,
         verbose=False,
         mode='min'
     )

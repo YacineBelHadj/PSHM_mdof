@@ -28,7 +28,7 @@ def compute_auc(anomaly,healthy):
     return roc_auc_score(y_true, y_score)
 
 
-def compute_auc_for_levels(df,score_column='log_likelihood'):
+def compute_auc_for_levels(df,score_column='log_likelihood',scaling_factor=-1):
     """
     Function to compute AUC-ROC for each system and anomaly level.
 
@@ -50,12 +50,11 @@ def compute_auc_for_levels(df,score_column='log_likelihood'):
 
     for system in systems:
         system_df = df[df['system_name'] == system]
-
+        healthy = scaling_factor*system_df[system_df['stage'] == 'test'][score_column].values
         # Negating 'log_likelihood' values because higher values indicate more anomaly
-        healthy = -system_df[system_df['anomaly_level'] == 0][score_column].values
 
         for level in anomaly_levels:
-            anomaly = -system_df[system_df['anomaly_level'] == level][score_column].values
+            anomaly = scaling_factor*system_df[system_df['anomaly_level'] == level][score_column].values
 
             # Compute AUC using the defined function
             auc = compute_auc(healthy=healthy, anomaly=anomaly)

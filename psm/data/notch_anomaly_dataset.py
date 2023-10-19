@@ -91,8 +91,8 @@ def main():
     conn_psd = sqlite3.connect(database_processed_path)
     c_psd = conn_psd.cursor()
     freq = load_freq_axis(database_processed_path)
-    f_affected_grid = np.arange(1,140,0.5)
-    amp_grid = np.arange(-0.35,0.4,0.05)
+    f_affected_grid = np.arange(1,140,1)
+    amp_grid = np.arange(-0.5,0.55,0.05)
     amp_grid = np.round(amp_grid,2)
     print(f'f_affected_grid: {f_affected_grid}, amp_grid: {amp_grid}')
 
@@ -114,7 +114,7 @@ def main():
 
         for f_affected in f_affected_grid:
             for amp in amp_grid:
-                psd_res_notched = affect_psd(psd=psd, freq=freq, amp=amp, f_oi=f_affected, length=1)
+                psd_res_notched = affect_psd(psd=psd, freq=freq, amp=amp, f_oi=f_affected, length=2)
                 # convert psd_res to bytes to store as a blob
                 psd_res_notched = psd_res_notched.tobytes()
                 f_affected = float(f_affected)

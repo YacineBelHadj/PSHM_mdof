@@ -1,8 +1,7 @@
 import numpy as np
 import sqlite3
-from typing import Union, Tuple
+from typing import Union, Tuple, Callable
 from pathlib import Path
-
 
 class CreateTransformer:
     """ this class intend to generate the transformer that you need to transform the psd
@@ -82,7 +81,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 from typing import Union, List
-def build_query(anomaly_level, system_name,stage):
+def build_query(anomaly_level, system_name,stage:str=None):
     """ a utile function that prepare the query for you based on the anomaly_level and system_name
     """
     params = []
@@ -123,7 +122,8 @@ class PSDDataset(Dataset):
         plt.show()
         break   
     """
-    def __init__(self, database_path: Union[str, Path], system_name: str = None,
+    def __init__(self, database_path: Union[str, Path], 
+                 system_name: str = None,
                  anomaly_level: Union[float, List[float], str] = None,
                  transform=None, transform_label=None, preload: bool = False,
                  stage=None):
@@ -222,21 +222,33 @@ class PSDDataModule(pl.LightningDataModule):
         self.num_workers = num_workers
 
     def setup(self, stage=None): 
-        self.full_train_dataset = self.dataset(anomaly_level=0, preload=True, stage='train')
+        self.full_train_dataset = self.dataset(anomaly_level=0, 
+                                               preload=True, 
+                                               stage='train')
         generator1 = torch.Generator().manual_seed(42)
 
-        self.train_dataset, self.val_dataset = random_split(self.full_train_dataset,[800*20,200*20],
+        self.train_dataset, self.val_dataset = random_split(self.full_train_dataset,
+                                                            [800*20,200*20],
                                                             generator=generator1)
         self.test_dataset = self.dataset(anomaly_level=0, preload=True, stage='test')
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)
+        return DataLoader(self.train_dataset,
+                           batch_size=self.batch_size, 
+                           shuffle=True, 
+                           num_workers=self.num_workers)
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
+        return DataLoader(self.val_dataset, 
+                          batch_size=self.batch_size, 
+                          shuffle=False, 
+                          num_workers=self.num_workers)
 
     def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers)
+        return DataLoader(self.test_dataset, 
+                          batch_size=self.batch_size, 
+                          shuffle=False, 
+                          num_workers=self.num_workers)
     
 ####
 
@@ -247,7 +259,7 @@ def build_query_system(system_name: str) -> Tuple[str, Tuple]:
         return "system_name=?", (system_name,)
 
 class PSDNotchDataset(Dataset):
-    def __init__(self, database_path: Union[str, Path], system_name: str = '*', 
+    def __init__(self, database_path: Union[str, Path], system_name: str = None, 
                  transform=None, transform_label=None, preload:bool=False):
         self.database_path = database_path
         self.system_name = system_name
@@ -257,9 +269,7 @@ class PSDNotchDataset(Dataset):
         self.conn = sqlite3.connect(self.database_path)
         self.c = self.conn.cursor()
         
-        query, params = build_query_system(self.system_name)
-        print (query, params)
-        self.c.execute(f"SELECT id FROM VAS_notch WHERE {query}", params)
+        self.c.execute(f"SELECT id FROM VAS_notch")
         self.keys = [row[0] for row in self.c.fetchall()]
 
         if self.preload:
@@ -350,3 +360,73 @@ class PSDNotchDatasetOriginal(Dataset):
 
         return psd, system_name , 0 , 0
         
+
+
+class PSDDataset_test(Dataset):
+    """This class is similar to PSDDataset but it is used for testing.
+    It returns the psd, the system_name, the anomaly_level, and the stage.
+    """
+
+    def __init__(self, database_path: Union[str, Path],
+                 system_name: str = '*',  # Keep as * for wildcard in function arguments
+                 anomaly_level: Union[float, List[float], str] = None,
+                 transform: Callable=None  , transform_label:Callable=None,
+                 preload: bool = False):
+                 
+        self.database_path = database_path
+        self.system_name = system_name
+        self.transform = transform
+        self.transform_label = transform_label
+        self.preload = preload
+        self.conn = sqlite3.connect(self.database_path)
+        self.c = self.conn.cursor()
+
+        self.query, self.params = build_query(anomaly_level, system_name)
+        print (self.query, self.params)
+        self.c.execute(f"SELECT id FROM processed_data")
+        fetched_data = self.c.fetchall()
+        self.keys = [d[0] for d in fetched_data]
+
+        if self.preload:
+            self.data = self._preload_data()
+        self.check()
+
+    def check(self):
+        assert callable(self.transform)
+        assert callable(self.transform_label)
+
+    def _preload_data(self):
+        key_str = ', '.join('?' for _ in self.keys)
+        self.c.execute(
+            """SELECT PSD, system_name, anomaly_level, stage, excitation_amplitude, latent_value
+               FROM processed_data WHERE id IN ({})""".format(key_str), 
+            self.keys)
+        data = self.c.fetchall()
+        return data
+    def __len__(self):
+        return len(self.keys)
+
+    def __getitem__(self, index: int):
+        if self.preload:
+            row = self.data[index]
+        else:
+            self.c.execute(
+                """SELECT PSD, system_name, anomaly_level, stage, excitation_amplitude, latent_value
+                   FROM processed_data WHERE id=?""", 
+                (self.keys[index],))
+            row = self.c.fetchone()
+
+        psd = np.frombuffer(row[0], dtype=np.float64)
+        system_name = row[1]
+        anomaly_level = row[2]
+        stage = row[3]
+        excitation_amplitude = row[4]
+        latent_value = row[5]
+
+        if self.transform:
+            psd = self.transform(psd)
+        if self.transform_label:
+            system_name = self.transform_label(system_name)
+        psd = torch.from_numpy(psd).float()
+
+        return psd, system_name, anomaly_level, stage, excitation_amplitude, latent_value
