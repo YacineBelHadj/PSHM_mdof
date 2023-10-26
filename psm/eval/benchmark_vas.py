@@ -14,6 +14,11 @@ from tqdm import tqdm
 import seaborn as sns
 from matplotlib import pyplot as plt
 import pandas as pd
+from scipy import stats as st
+# logging
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def compute_anomaly_score(model,dataloaders):
@@ -43,6 +48,10 @@ def add_auc_col(df_res,system_id:int=1):
     df_grouped = df_sys.groupby(['f_notch','amplitude'])['anomaly_index'].apply(compute_auc_partial)
     df_grouped=df_grouped.reset_index()
     df_grouped['AUC']=df_grouped['anomaly_index']
+    # assert that the AUC are between 0 and 1
+    if not df_grouped['AUC'].between(0.1,1).all():
+        print('AUC should be between 0 and 1')
+
     return df_grouped   
 
 def compute_means(df_aucs):
@@ -52,13 +61,21 @@ def compute_means(df_aucs):
         raise ValueError('AUC should be a column name')
     
     df_auc = df_aucs[df_aucs['amplitude']!=0]['AUC'] # non 0 amplitude
+    ## flatten all the values
+    auc_array = df_auc.values.flatten()
+    ## saturate the values between 0.5 and 1 this is needed for very bad models 
+    ## boolean variable to check is we need to saturate the values
+    saturate = (auc_array<0.3).any()
+    auc_array = np.clip(auc_array,0.1,1)
     # compute the geometric mean
-    geometric_mean = np.exp(np.mean(np.log(df_auc)))
+    geometric_mean = st.gmean(auc_array)
     # compute the harmonic mean
-    harmonic_mean = len(df_auc)/np.sum(1/df_auc)
-    # compute the mean
-    mean = np.mean(df_auc)
-    return {'geometric_mean':geometric_mean, 'harmonic_mean':harmonic_mean, 'mean':mean}
+    harmonic_mean = st.hmean(auc_array)
+    # compute the mean - arthmetic mean
+    mean = np.mean(auc_array)
+
+    return {'geometric_mean':geometric_mean, 'harmonic_mean':harmonic_mean, 'arthmetic_mean':mean,
+            'saturation':saturate}
 
 
 
@@ -78,12 +95,17 @@ def plot_contour(df_aucs, ax, system_id=None, df_resonance_avg=None):
     ax.set_xlabel('Frequency (f_notch)', fontsize=14)
     ax.set_ylabel('Amplitude', fontsize=14)
     ax.grid(True, linestyle='--', linewidth=0.5, color='grey')
-    if system_id:
+    
+    if system_id and df_resonance_avg is not None:
         res_freq = df_resonance_avg[df_resonance_avg['system_id']==system_id].values.flatten()[1:]
         for fi in res_freq[1:-1]:
             ax.axvline(fi, color='black', linestyle='-.')
+    # adding tilte system id
+    if system_id:
+        ax.set_title(f'System {system_id}')
     ax.set_yticks([i/10 for i in range(-5,6)])
     ax.set_xticks([i for i in range(0,150,20)])
+    return ax
 
 
 @dataclass
@@ -119,6 +141,7 @@ class Benchmark_VAS:
         optimization_metrics = compute_means(df_sys)
         fig,ax= plt.subplots(figsize=(10,8))
         ax = plot_contour(df_sys, ax, system_id=system_id, df_resonance_avg=self.df_resonance_avg)
+        plt.close(fig)
         return optimization_metrics, ax
     
     def evaluate_all_individus(self):

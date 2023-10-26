@@ -17,7 +17,7 @@ from psm.utils.data.metadata import get_metadata_processed
 from psm.models.prepare_data import CreateTransformer,\
                                         PSDDataModule,PSDDataset,\
                                         PSDNotchDataset,PSDNotchDatasetOriginal
-from psm.eval.benchmark import Benchmark_SA,Benchmark_VAS
+from psm.eval.benchmark_old import Benchmark_SA,Benchmark_VAS
 from psm.models.callbacks_logger import create_callbacks_loggers,\
                                         log_metrics
 from psm.models.vanilla_classification import DenseSignalClassifier,\

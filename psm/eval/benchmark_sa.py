@@ -97,8 +97,8 @@ def plot_boxplot_with_train(df_sys, UCL,system_name:int=None):
     ax.set_ylabel('Anomaly Index')
     
     # Add UCL
-    ax.axhline(UCL, color='k', linestyle='-.', linewidth=2, label='UCL')
-    ax.text(8, UCL *1.5, 'UCL', rotation=0, va='center')
+#    ax.axhline(UCL, color='k', linestyle='-.', linewidth=2, label='UCL')
+#    ax.text(8, UCL *1.5, 'UCL', rotation=0, va='center')
     if system_name:
         ax.set_title(f'System {system_name}')
     
