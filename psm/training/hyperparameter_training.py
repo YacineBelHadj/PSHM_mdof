@@ -1,6 +1,9 @@
 """ Hyperparameter optimization using Optuna. 
     This script is used to optimize the hyperparameters of the DenseSignalClassifier model."""
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 import comet_ml
 import optuna.visualization as vis
@@ -127,11 +130,13 @@ def train_model(hyperparams):
     optimization_metric, real_final_metric = record_benchmark_results(logger, result_benchmark1, result_benchmark2)
 
     logger.experiment.end()
+    # let's close all the plots to avoid memory leaks
+    plt.close('all')
 
     return optimization_metric, real_final_metric
 
 def objective(trial):
-    activation_map = {    'ReLU': nn.ReLU(),
+    activation_map = { 'ReLU': nn.ReLU(),
     'LeakyReLU': nn.LeakyReLU(),
     'Tanh': nn.Tanh(),
     'Sigmoid': nn.Sigmoid()

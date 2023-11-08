@@ -49,8 +49,6 @@ def construct_nodge(freq,f_oi,length,amp):
     window[np.abs(freq-f_oi)<length] = hann
     return window
 def multiply_signals_log(psd,window):
-
-
     log_psd = np.log(psd)
     #  normalize the psd
     min_psd = np.min(log_psd)
@@ -61,6 +59,7 @@ def multiply_signals_log(psd,window):
     psd_aff = psd_aff * (max_psd - min_psd) + min_psd
     res = np.exp(psd_aff)
     return res
+
 def affect_psd(psd,freq,amp,f_oi,length):
     window = construct_nodge(freq=freq,f_oi=f_oi,length=length,amp=amp)
     psd_res = multiply_signals_log(psd,window)

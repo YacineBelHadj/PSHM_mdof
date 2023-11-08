@@ -229,3 +229,4 @@ data/*
 configs/*
 # Ignore model files
 model/*
+data_elia/*

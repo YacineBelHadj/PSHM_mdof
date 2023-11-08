@@ -10,7 +10,8 @@ settings = Dynaconf(
     envvar_prefix="DYNACONF",
     settings_files=['configuration/settings.toml', 
                     'configuration/.secrets.toml', 
-                    'configuration/population.toml'],
+                    'configuration/population.toml',
+                    'configuration/settings_elia.toml'],
     root_path = ROOT_PATH
 )
 def create_psd_path(root,settings_proc,settings_simu):

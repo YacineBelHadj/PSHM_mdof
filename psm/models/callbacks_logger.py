@@ -3,6 +3,10 @@ from pytorch_lightning.loggers import CometLogger
 from config import settings
 from pathlib import Path
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 
 model_path = Path(settings.data.path["model"])
 log_path = Path(settings.local_comet["path"])
@@ -65,7 +69,7 @@ def record_benchmark_results(logger, result_benchmark1, result_benchmark2):
     result_benchmark1: A tuple containing (AUC scores dictionary, axs) 
     result_benchmark2: A tuple containing (Optimization metrics dictionary, axs)
     """
-    print('Recording benchmark results ...')
+    print('Recording benchmark results ')
     auc_sa, boxplot_axs = result_benchmark1
     auc_vas, contour_axs = result_benchmark2
     experiment = logger.experiment

@@ -1,0 +1,72 @@
+[DATAELIA]
+[DATAELIA.PATH]
+raw = "/media/yacine/Intenso/RawData"
+processed = "/home/yacine/Documents/PhD/Code/GitProject/PBSHM_mdof/data_elia/processed"
+model = "/home/yacine/Documents/PhD/Code/GitProject/PBSHM_MDOF/model_elia"
+
+[DATAELIA.SENSOR]
+fs = 250
+
+[PROCESSING]
+[PROCESSING.settings1]
+nperseg=1024
+filter_params={order=2,lpf=50}
+duration = 10 # in minutes
+step = 5 # in minutes
+
+[MEASUREMENTS]
+start = "2022-03-29 12:00:00"
+end = "2022-06-25 00:06:00"
+
+[EVENT]
+[EVENT.start_measurements]
+timestamp = "2022-03-29 12:00:00"
+state = "healthy"
+[EVENT.remove_bolt]
+timestamp = "2022-04-25 08:05:00"
+state = "damaged"
+[EVENT.incomplete_bolt]
+timestamp = "2022-04-27 08:57:00"
+state = "damaged"
+[EVENT.loose_bolt]
+timestamp = "2022-04-29 09:22:00"
+state = "damaged"
+[EVENT.tighten_bolt]
+timestamp = "2022-05-03 08:35:00"
+state = "healthy"
+[EVENT.buckling_EW916]
+timestamp = "2022-05-09 08:05:00"
+state = "damaged"
+[EVENT.removal_EW916]
+timestamp = "2022-05-16 07:36:00"
+state = "damaged"
+[EVENT.removal_EW918]
+timestamp = "2022-05-23 12:04:00"
+state = "damaged"
+[EVENT.replacement_EW916_918]
+timestamp = "2022-05-30 06:51:00"
+state = "healthy"
+[EVENT.grinding_EW196]
+timestamp = "2022-06-07 08:09:00"
+state = "damaged"
+[EVENT.Reinforcement_EW916]
+timestamp = "2022-06-13 08:06:00"
+state = "damaged"
+
+[STAGE]
+[STAGE.training]
+start = "2022-03-29 12:00:00"
+end = "2022-04-02 00:00:00"
+[STAGE.testing]
+start = "2022-04-02 00:00:00"
+end = "2022-04-25 08:05:00"
+[STAGE.anomaly]
+start = "2022-04-25 08:05:00"
+end = "2022-06-13 08:06:00"
+
+[ACTIVITY]
+[ACTIVITY.climbing]
+[ACTIVITY.climbing.start]
+timestamp = "2022-06-07 07:59:00"
+[ACTIVITY.climbing.end]
+timestamp = "2022-06-07 08:06:00"

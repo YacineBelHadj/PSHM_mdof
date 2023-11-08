@@ -103,7 +103,6 @@ def plot_boxplot_with_train(df_sys, UCL,system_name:int=None):
         ax.set_title(f'System {system_name}')
     
     ax.grid(True, axis='y', which='minor', linestyle='--', linewidth=0.5)
-    plt.close(fig)
     return ax
 
 @dataclass

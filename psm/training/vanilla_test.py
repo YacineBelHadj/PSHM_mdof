@@ -69,4 +69,4 @@ result_benchmark1 = benchmark1.evaluate_all_systems()
 benchmark2 = Benchmark_VAS(ad_system,psd_notch,psd_original,batch_size=50000,df_resonance_avg=df_resonance_avg)
 result_benchmark2 = benchmark2.evaluate_all_individus()
 #%%
-record_benchmark_results(logger, result_benchmark1, result_benchmark2)
+optimization_metric, real_final_metric = record_benchmark_results(logger, result_benchmark1, result_benchmark2)
