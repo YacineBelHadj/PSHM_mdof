@@ -20,6 +20,7 @@ def load_processed_data_path(settings_name:str):
     root_processed_data_path = Path(settings.dataelia.path['processed'])
     processed_data_path = (root_processed_data_path/settings_name.lower()).with_suffix('.db')
     return processed_data_path
+
 def load_processed_data_path_vas(settings_name:str):
     root_processed_data_path = Path(settings.dataelia.path['processed'])
     processed_data_path = (root_processed_data_path/(settings_name.lower()+'_vas')).with_suffix('.db')
@@ -55,6 +56,8 @@ def load_measurement_bound():
     start = datetime.strptime(t_s, '%Y-%m-%d %H:%M:%S')
     end = datetime.strptime(t_e, '%Y-%m-%d %H:%M:%S')
     return start, end
+
+
 
 
 if __name__ == "__main__":

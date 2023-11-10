@@ -2,7 +2,7 @@
 [DATAELIA.PATH]
 raw = "/media/yacine/Intenso/RawData"
 processed = "/home/yacine/Documents/PhD/Code/GitProject/PBSHM_mdof/data_elia/processed"
-model = "/home/yacine/Documents/PhD/Code/GitProject/PBSHM_MDOF/model_elia"
+model = "/home/yacine/Documents/PhD/Code/GitProject/PBSHM_mdof/model/model_elia"
 
 [DATAELIA.SENSOR]
 fs = 250
@@ -13,6 +13,10 @@ nperseg=1024
 filter_params={order=2,lpf=50}
 duration = 10 # in minutes
 step = 5 # in minutes
+
+[NeuralNetwork]
+[NeuralNetwork.settings1]
+freq_range = [0, 50]
 
 [MEASUREMENTS]
 start = "2022-03-29 12:00:00"
