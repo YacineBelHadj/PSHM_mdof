@@ -5,6 +5,7 @@ from sklearn.mixture import GaussianMixture as GM
 from comet_ml.integration.sklearn import log_model as log_model_sklearn
 from comet_ml.integration.pytorch import log_model as log_model_pytorch
 from abc import ABC, abstractmethod
+import matplotlib.pyplot as plt
 
 # define an abstract class for anomaly detection system 
 # so that we can use the same interface for all the systems
@@ -50,7 +51,7 @@ class AD_GMM(AD_system):
         self.model.eval()
         with torch.no_grad():
             for batch in dataloader:
-                data, = batch
+                data = batch
                 feature,_,_ = self.model(data)
                 feature = feature.detach().numpy()
                 features.append(feature)
@@ -67,7 +68,7 @@ class AD_GMM(AD_system):
         if data.ndim == 1:
             data = data.reshape(1,-1)
         self.model.eval()
-        _, feature = self.model(data)
+        feature,_,_ = self.model(data)
         feature = feature.detach().numpy()
         log_likelihood = self.gmm.score_samples(feature)
         return log_likelihood
@@ -81,7 +82,22 @@ class AD_GMM(AD_system):
     def log_model(self,logger):
         log_model_pytorch(logger,model=self.model, model_name="model_nn")
         log_model_sklearn(logger,model=self.gmm, model_name="gmm")
-        
+
+    def find_best_ncomp(self,dataloader, n_components):
+        feature = self.load_all(dataloader)
+        res =dict()
+        for n_comp in n_components:
+            gmm = GM(n_components=n_comp, covariance_type='full')
+            gmm.fit(feature)
+            bic = gmm.bic(feature)
+            res[n_comp] = bic
+            print(f"n_comp: {n_comp}, bic: {bic}")
+        # make a plot of the bic
+        plt.figure()
+        plt.plot(res.keys(),res.values())
+        plt.show()
+        return res
+            
     @classmethod
     def load(cls, filename, num_classes, model_class, *model_args):
         # Load pytorch model
@@ -108,19 +124,21 @@ class AD_GMM(AD_system):
     
 class AD_energy(AD_system):
     def __init__(self,model):
-        self.model_en = model
+        self.model = model
         # check if datamodule 
         
     
-    def fit(self,data):
+    def fit(self):
         pass
 
     def predict(self, data):
         if data.ndim == 1:
             data = data.reshape(1,-1)
-        self.model_en.eval()
-        energy = self.model_en.get_energy(data)
-        # Compute energy directly from the features
+        self.model.eval()
+
+        feature , _ , _ = self.model(data)
+
+        energy = torch.logsumexp(feature,dim=1)
         energy = energy.detach().numpy()
         return energy
 

@@ -100,8 +100,10 @@ def process_data(data,config):
     freq, psd = apply_welch(singals_preprocessed,
                             config_.fs,
                             nperseg=config_.nperseg)
-    res_dict = {'freq':freq,
-                'psd':psd,
+    freq_mask =  (freq<=config_.lpf+20)
+
+    res_dict = {'freq':freq[freq_mask],
+                'psd':psd[:,freq_mask],
                 'rms':rms,
                 'face':face,
                 'direction':direction}
@@ -163,7 +165,8 @@ def process_iteration(loader,dt,c_processed,progress_bar,config):
     # insert the data into the database
     insert_proccessed_data(c_processed, data_to_insert)
     progress_bar.update(1)
-    progress_bar.set_postfix({'dt':dt})
+    progress_bar.set_postfix({'dt':dt,
+                              'stage':res_dict['stage'][0]})
     dt += config.step
     config.freq = res_dict['freq']
     # assert that dt increased by step
@@ -183,8 +186,7 @@ def process_loop(config):
     while dt < config.end_time:   
         dt = process_iteration(loader, dt, c_processed, progress_bar, config)
                     
-    progress_bar.update(1)
-    progress_bar.set_postfix({'dt':dt})
+
     conn_processed.commit()
     # insert metadata into the database
     freq_blob = sqlite3.Binary(config.freq.tobytes())
