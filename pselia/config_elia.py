@@ -26,6 +26,14 @@ def load_processed_data_path_vas(settings_name:str):
     processed_data_path = (root_processed_data_path/(settings_name.lower()+'_vas')).with_suffix('.db')
     return processed_data_path
 
+def get_data_path(settings_name:str, data_type:str):
+    if data_type == 'psd_original':
+        return load_processed_data_path(settings_name)
+    elif data_type == 'psd_notch':
+        return load_processed_data_path_vas(settings_name)
+    else:
+        raise ValueError(f"data_type {data_type} not supported")
+
 def load_events():
     events = {}
     for event_name, event_data in settings.EVENT.items():
@@ -57,6 +65,9 @@ def load_measurement_bound():
     end = datetime.strptime(t_e, '%Y-%m-%d %H:%M:%S')
     return start, end
 
+def load_optimazation_path():
+    root_optimization_path = Path(settings.dataelia.path.optimization_optuna)
+    return root_optimization_path
 
 
 

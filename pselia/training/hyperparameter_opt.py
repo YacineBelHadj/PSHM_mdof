@@ -3,20 +3,20 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import comet_ml
 import pytorch_lightning as pl
-from pselia.config_elia import settings, load_processed_data_path, load_processed_data_path_vas
+from pselia.config_elia import  load_processed_data_path, load_processed_data_path_vas, load_optimazation_path
 from pselia.utils import load_freq_axis
 from pselia.training.datamodule import PSDELiaDataModule , CreateTransformer, PSDNotchDataset , PSDELiaDataset_test
 import optuna
 import pandas as pd 
 from pselia.training.dense_model import DenseSignalClassifierModule
 from pselia.training.callback_logger import create_callbacks_loggers, record_benchmark_results
-from pselia.training.ad_systems import AD_GMM, AD_energy
+from pselia.training.ad_systems import AD_GMM, AD_Latent_Fit
 from pselia.eval.benchmark_vas import Benchmark_VAS
 from pselia.eval.benchmark_sa import Benchmark_SA
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-settings_proc = 'SETTINGS1'
+settings_proc = 'SETTINGS2'
 
 database_path = load_processed_data_path(settings_proc)
 vas_path = load_processed_data_path_vas(settings_proc)
@@ -46,12 +46,12 @@ dm.setup()
 dl_feature= dm.ad_system_dataloader(batch_size=2000)
 
 def train_model(hyperparams):
-    anomaly_index = hyperparams.pop('anomaly_index')
     model = DenseSignalClassifierModule(**hyperparams)
-    callbacks, logger = create_callbacks_loggers()
+    callbacks, logger = create_callbacks_loggers(project_name_in_settings='project_elia_1')
     logger.experiment.add_tag('hyperparameter_optimization')
-
-    logger.experiment.add_tag('hyperparameter_optimization')
+    # log model anomaly index as a hyperparameter
+    # log hyperparameters
+    logger.experiment.log_parameters(hyperparams)
     trainer = pl.Trainer(max_epochs=50, callbacks=callbacks, logger=logger)
     trainer.fit(model, dm)
 
@@ -59,13 +59,9 @@ def train_model(hyperparams):
     best_model = DenseSignalClassifierModule.load_from_checkpoint(ckpt)
     trainer.test(best_model, datamodule=dm)
 
-    if anomaly_index == 'energy':
-        ad = AD_energy(model=best_model.model)
-    elif anomaly_index == 'gmm':
-        ad = AD_GMM.load_from_log(logger, num_classes=anomaly_index)
-        ad.fit(dl_feature)
-    else:
-        raise ValueError(f"anomaly_index {anomaly_index} not supported")
+    ad = AD_GMM(num_classes=12, model=best_model.model)
+    ad.fit(dl_feature)
+
     
     benchmark_sa = Benchmark_SA(ad_system=ad, dl = dl_all) # Setup with proper dataloaders
     result_bench_sa = benchmark_sa.evaluate_all_systems(window=1) # Evaluate and visualize
@@ -87,28 +83,41 @@ def objective(trial):
     'Tanh': nn.Tanh(),
     'Sigmoid': nn.Sigmoid()
         }
-    valid_neurons= [32,64,128,256,512,1024]
-    depth = trial.suggest_int('depth', 1, 5)
-    dense_layers = [valid_neurons[trial.suggest_int('dense_layers_{}'.format(i), 0, len(valid_neurons)-1)] \
-                    for i in range(depth)]
+    valid_neurons_1= [256,512,1024,2048]
+    valid_neurons_2 = [32,64,128,256,512,1024]
+    depth = trial.suggest_int('depth', 2, 5)
+    dense_layers = []
+    for i in range(depth):
+        if i == 0:
+            dense_layers.append(trial.suggest_categorical(f'neurons_{i}', valid_neurons_1))
+        else:
+            dense_layers.append(trial.suggest_categorical(f'neurons_{i}', valid_neurons_2))
+
     dropout_rate = trial.suggest_float('dropout_rate', 0.0, 0.5)
     lr = trial.suggest_float('lr', 1e-5, 1e-1,log=True)
     batch_norm = trial.suggest_categorical('batch_norm', [True, False])
     activation_name = trial.suggest_categorical('activation', ['ReLU', 'Tanh', 'Sigmoid', 'LeakyReLU'])
     activation = activation_map[activation_name]
     l1_reg = trial.suggest_float('l1_reg', 1e-6, 1e-2, log=True)
-    temperature = trial.suggest_float('temperature', 1e-1,10, log=True)
+    temperature = trial.suggest_float('temperature', 1e-1,3)
     bias = trial.suggest_categorical('bias', [True, False])
-    anomaly_index = trial.suggest_categorical('anomaly_index', ['energy', 'gmm'])
     period_CosineAnnealingLR = trial.suggest_int('period_CosineAnnealingLR', 10, 100)
     hyperparams = {'input_dim':input_dim, 'dense_layers':dense_layers,
                     'dropout_rate':dropout_rate, 'num_direction':3,'num_face':4, 'lr':lr,
                     'bias':bias, 'batch_norm':batch_norm, 'activation':activation, 'l1_reg':l1_reg,
-                    'anomaly_index':anomaly_index, 'temperature':temperature}
+                    'temperature':temperature, 'period_CosineAnnealingLR':period_CosineAnnealingLR}
     res = train_model(hyperparams)
     return res['vas_auc']
 
-study = optuna.create_study(direction='maximize')
+opt_path = load_optimazation_path()
+study_name = 'hyperparameter_optimization_nperseg2'
+# create path to store the study
+path_db_study = opt_path / f'optuna_studyname_{study_name}.db'
+path_db_study.parent.mkdir(parents=True, exist_ok=True)
+# get str from path
+path_db_study = str(path_db_study)
+storage_name = f'sqlite:///{path_db_study}'
+study = optuna.create_study(direction='maximize', study_name=study_name, storage=storage_name)
 study.optimize(objective, n_trials=100)
 
 

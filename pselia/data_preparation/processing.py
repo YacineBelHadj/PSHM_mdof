@@ -1,6 +1,7 @@
 from scipy import signal
 import numpy as np
 
+
 def preprocess_vibration_data(data, filter_order, lpf, sampling_frequency):
     if data.ndim == 1:
         data = data[np.newaxis, :]
@@ -45,7 +46,7 @@ if __name__=='__main__':
     from pathlib import Path
     raw_data_path = Path(settings.dataelia.path['raw'])
     fs = settings.dataelia.sensor['fs']
-    params_p = settings.processing['settings1']
+    params_p = settings.processing['SETTINGS1']
 
     filter_order = params_p['filter_params']['order']
     lpf = params_p['filter_params']['lpf']

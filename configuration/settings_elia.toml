@@ -3,13 +3,18 @@
 raw = "/media/yacine/Intenso/RawData"
 processed = "/home/yacine/Documents/PhD/Code/GitProject/PBSHM_mdof/data_elia/processed"
 model = "/home/yacine/Documents/PhD/Code/GitProject/PBSHM_mdof/model/model_elia"
-
+optimization_optuna = "/home/yacine/Documents/PhD/Code/GitProject/PBSHM_mdof/model/optimization_elia"
 [DATAELIA.SENSOR]
 fs = 250
 
 [PROCESSING]
 [PROCESSING.settings1]
 nperseg=1024
+filter_params={order=2,lpf=50}
+duration = 10 # in minutes
+step = 5 # in minutes
+[PROCESSING.settings2]
+nperseg=2048
 filter_params={order=2,lpf=50}
 duration = 10 # in minutes
 step = 5 # in minutes

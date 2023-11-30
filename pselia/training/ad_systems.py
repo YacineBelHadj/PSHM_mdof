@@ -165,4 +165,56 @@ class AD_energy(AD_system):
     def log_model(self,logger):
         log_model_pytorch(logger,model=self.model, model_name="model_nn")
 
+from sklearn.svm import OneClassSVM
 
+
+class AD_Latent_Fit(AD_system):
+    def __init__(self, model, method='gmm', num_classes=None, nu=None, gamma='scale', kernel='rbf'):
+        assert method in ['gmm', 'ocsvm'], "Method must be either 'gmm' or 'ocsvm'"
+        self.method = method
+        self.model = model
+
+        if self.method == 'gmm':
+            assert num_classes is not None, "num_classes must be specified for GMM"
+            self.anomaly_model = GM(n_components=num_classes, covariance_type='full')
+        elif self.method == 'ocsvm':
+            self.anomaly_model = OneClassSVM(nu=nu, kernel=kernel, gamma=gamma)
+
+    def load_all(self, dataloader):
+        features = []
+        self.model.eval()
+        with torch.no_grad():
+            for batch in dataloader:
+                data = batch
+                feature, _, _ = self.model(data)
+                feature = feature.detach().numpy()
+                features.append(feature)
+        features = np.concatenate(features)
+        return features
+
+    def fit(self, dataloader):
+        features = self.load_all(dataloader)
+        self.anomaly_model.fit(features)
+
+    def predict(self, data):
+        if data.ndim == 1:
+            data = data.reshape(1, -1)
+        self.model.eval()
+        feature, _, _ = self.model(data)
+        feature = feature.detach().numpy()
+
+        if self.method == 'gmm':
+            return self.anomaly_model.score_samples(feature)
+        elif self.method == 'ocsvm':
+            return self.anomaly_model.decision_function(feature)
+
+    def save(self, filename):
+        torch.save(self.model.state_dict(), filename + ".pth")
+        joblib.dump(self.anomaly_model, filename + f"_{self.method}.joblib")
+
+    def log_model(self, logger):
+        log_model_pytorch(logger, model=self.model, model_name="model_nn")
+        if self.method == 'gmm':
+            log_model_sklearn(logger, model=self.anomaly_model, model_name="gmm")
+        elif self.method == 'ocsvm':
+            log_model_sklearn(logger, model=self.anomaly_model, model_name="ocsvm")

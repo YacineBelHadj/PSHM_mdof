@@ -67,17 +67,27 @@ def compute_anomaly_index(psd_dl:DataLoader,
 
 import seaborn as sns
 
-def plot_boxplot(df_sys_processed, direction, face, ordered_categories):
-    fig, ax = plt.subplots(figsize=(10, 6))
 
-    # Using seaborn's boxplot function with the 'order' parameter
-    sns.boxplot(x='hue_plot', y='anomaly_index', data=df_sys_processed, ax=ax, order=ordered_categories, showfliers=False,color='black',fill=False)
+def plot_boxplot(df_sys_processed, direction, face, ordered_categories, auc):
+    fig, ax = plt.subplots(figsize=(12, 8))
 
-    ax.set_title(f'Anomaly index for {direction} direction and face {face}')
-    ax.set_xlabel('Anomaly description')
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-    ax.grid(True, axis='y', which='both')
+    # Create the boxplot
+    box_plot = sns.boxplot(x='hue_plot', y='anomaly_index', data=df_sys_processed, ax=ax,
+                           order=ordered_categories, showfliers=False, color='lightblue')
 
+    # Annotate each box with the corresponding AUC value
+     # Iterate over the AUC dictionary
+
+
+    # Set plot title and labels
+    ax.set_title(f'Anomaly Index for {direction.capitalize()} Direction and Face {face}', fontsize=14, weight='bold')
+    ax.set_xlabel('Anomaly Description', fontsize=12)
+    ax.set_ylabel('Anomaly Index', fontsize=12)
+
+    plt.xticks(rotation=45, ha="right", rotation_mode="anchor", fontsize=10)
+    ax.grid(True, axis='y', linestyle='--', alpha=0.7)
+    plt.subplots_adjust(bottom=0.15)
+    plt.close()
     return ax
 
 
@@ -123,7 +133,7 @@ class Benchmark_SA:
         if window is not None:
             df_sys_processed = average_window(df_sys_processed,window)
         df_sys_processed, earliest_date_maping  = self.add_abbreviation_hue(df_sys_processed)
-        ax = plot_boxplot(df_sys_processed,direction,face,ordered_categories=earliest_date_maping.index)
+        ax = plot_boxplot(df_sys_processed,direction,face,ordered_categories=earliest_date_maping.index, auc=auc)
         gc.collect()
         return auc, ax, earliest_date_maping
     
@@ -179,4 +189,4 @@ if __name__=='__main__':
         ax.get_figure()
         plt.show()
         plt.close()
-    print(auc_dict)
+        break

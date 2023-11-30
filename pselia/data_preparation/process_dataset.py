@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO,
 parser = argparse.ArgumentParser(description='Process elia data')
 parser.add_argument('--settings',type=str,\
                     help='settings_param name in configuration/settings_elia.toml'\
-                        ,default='SETTINGS1')
+                        ,default='SETTINGS2')
 args = parser.parse_args()
 
 class Config():

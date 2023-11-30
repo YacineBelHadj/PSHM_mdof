@@ -18,11 +18,11 @@ logging.basicConfig(level=logging.INFO,
 
 # Set up argument parser
 parser = argparse.ArgumentParser()
-parser.add_argument('--settings', type=str, default='SETTINGS1')
+parser.add_argument('--settings', type=str, default='SETTINGS2')
 # grid search parameters for the notch filter
 parser.add_argument('--f_oi_grid', type=str, default='1,30,0.4')
 parser.add_argument('--amp_grid', type=str, default='-0.5,0.55,0.05')
-parser.add_argument('--length', type=float, default=2)
+parser.add_argument('--length', type=float, default=1)
 args = parser.parse_args()
 ### Parse arguments
 settings_name = args.settings
