@@ -1,6 +1,0 @@
-{
-    "learning_rate": {
-        "_type": "loguniform",
-        "_value": [0.0001, 0.01]
-    }
-}

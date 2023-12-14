@@ -1,4 +1,4 @@
-from pselia.training.datamodule import CreateTransformer, PSDELiaDataset_test, PSDELiaDataModule
+from pselia.training.datamodule import CreateTransformer, PSDELiaDataModule , PSDELiaDatasetBuilder
 from pselia.training.dense_model import DenseSignalClassifierModule
 from pselia.config_elia import settings, load_processed_data_path
 from pselia.utils import load_freq_axis, get_event_to_abbr
@@ -163,25 +163,41 @@ if __name__=='__main__':
 
     transformer = CreateTransformer(database_path, freq_axis, freq_min=freq_min, freq_max=freq_max)
     transform_psd = transformer.transform_psd
-    transform_label = transformer.transform_label
+    transform_face = transformer.transform_face
+    transform_direction = transformer.transform_direction    
     input_dim = transformer.dimension_psd()
 
     ### data loader
     dm = PSDELiaDataModule(database_path=database_path, 
-                        transform=transform_psd, label_transform=transform_label, 
+                        transform_psd=transform_psd, transform_direction=transform_direction,
+                        transform_face=transform_face, 
                         batch_size=32)
     dm.setup()
-    dl_feature= dm.ad_system_dataloader(batch_size=2000)
-    ds = PSDELiaDataset_test(database_path=database_path, 
-                            transform=transform_psd, label_transform=None)
-    dl_all = DataLoader(ds, batch_size=2000, shuffle=False, num_workers=4)
+    dl_feature = PSDELiaDatasetBuilder()\
+        .set_database_path(database_path)\
+        .set_transform_psd(transform_psd)\
+        .add_condition("stage=?", ['training'])\
+        .set_columns(['PSD'])\
+        .build()
+    dl_feature = DataLoader(dl_feature, batch_size=20000, shuffle=False, num_workers=1)
+    ds = PSDELiaDatasetBuilder()\
+        .set_database_path(database_path)\
+        .set_transform_psd(transform_psd)\
+        .set_transform_direction(transform_direction)\
+        .set_transform_face(transform_face)\
+        .set_columns(['PSD','direction','face','date_time','stage','anomaly_description'])\
+        
+    dl_all = DataLoader(ds, batch_size=20000, shuffle=False, num_workers=4)
 
 
     ## loader model 
     model_paths = '/home/yacine/Documents/PhD/Code/GitProject/PBSHM_mdof/model/model_elia/best-epoch=99-val_loss=0.00.ckpt'
+    print('loading model')
     model = DenseSignalClassifierModule.load_from_checkpoint(model_paths)
     ad_system = AD_GMM(num_classes=12, model=model.model)
+    print('fitting ad system')
     ad_system.fit(dl_feature)
+    print('done')
     benchmark = Benchmark_SA(ad_system,dl_all)
     auc_dict, axs = benchmark.evaluate_all_systems(window=20)
     #plot boxplot for all sensors

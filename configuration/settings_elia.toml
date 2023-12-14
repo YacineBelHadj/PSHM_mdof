@@ -18,6 +18,12 @@ nperseg=2048
 filter_params={order=2,lpf=50}
 duration = 10 # in minutes
 step = 5 # in minutes
+[PROCESSING.settings3]
+nperseg=4096
+filter_params={order=2,lpf=50}
+duration = 10 # in minutes
+step = 5 # in minutes
+
 
 [NeuralNetwork]
 [NeuralNetwork.settings1]

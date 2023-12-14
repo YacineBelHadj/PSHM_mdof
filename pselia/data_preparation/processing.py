@@ -8,8 +8,9 @@ def preprocess_vibration_data(data, filter_order, lpf, sampling_frequency):
     # Step 1: Band-pass filtering
     # Design a Butterworth low-pass filter
     data_ = data.copy()
+    # correct formula for rms
+
     b, a = signal.butter(filter_order, lpf, 'low', fs=sampling_frequency)
-    rms= np.sqrt(np.mean(np.square(data_),axis=-1))
 
     # Apply the filter to the data
     data_filtered = signal.filtfilt(b, a, data_, axis=-1)
@@ -24,7 +25,7 @@ def preprocess_vibration_data(data, filter_order, lpf, sampling_frequency):
     # Condition the data by subtracting the mean and dividing by the standard deviation
     # We keep the mean and std deviations in the same shape as data_filtered for broadcasting
     conditioned_data = (data_filtered - means) / stds
-
+    rms = stds
     return conditioned_data, rms
 
 def apply_welch(sig, sr:int,nperseg:int,noverlap:int|None=None):
