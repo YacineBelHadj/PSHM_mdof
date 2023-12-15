@@ -7,6 +7,15 @@ from torch.utils.data import Dataset, DataLoader
 import pytorch_lightning as pl
 from torch.utils.data.dataset import random_split
 
+def execute_batch_query(cursor, base_query, keys, batch_size=999):
+    # Process keys in batches
+    for i in range(0, len(keys), batch_size):
+        batch_keys = keys[i:i + batch_size]
+        placeholders = ','.join(['?'] * len(batch_keys))
+        query = base_query.format(placeholders)
+        cursor.execute(query, batch_keys)
+        for row in cursor.fetchall():
+            yield row
 class CreateTransformer:
     """ this class intend to generate the transformer that you need to transform the psd
     and labels
@@ -157,9 +166,16 @@ class PSDELiaDatasetBuilder:
         return self
 
     def build(self) -> Dataset:
-        query = f"SELECT {self.columns} FROM {self.table_name}"
+        base_query = f"SELECT {self.columns} FROM {self.table_name}"
+        condition_query = ""
         if self.conditions:
-            query += f" WHERE {self.conditions}"
+            condition_query = f" WHERE {self.conditions}"
+
+        # Preloading keys
+        query_keys = f"SELECT id FROM {self.table_name}"
+        if self.conditions:
+            query_keys += condition_query
+
 
         class PSDELiaDataset(Dataset):
             def __init__(self, builder: PSDELiaDatasetBuilder):
@@ -168,19 +184,25 @@ class PSDELiaDatasetBuilder:
                 self.cursor = self.conn.cursor()
                 self.preload = builder.preload
                 self.data = None
-                if self.preload:
-                    self.cursor.execute(query, builder.parameters)
-                    self.data = self.cursor.fetchall()
 
-            def __len__(self):
+                # Preload keys
+                self.cursor.execute(query_keys, builder.parameters)
+                print(query_keys, builder.parameters)
+                self.keys = [row[0] for row in self.cursor.fetchall()]
+
                 if self.preload:
-                    return len(self.data)
-                self.cursor.execute(f"SELECT COUNT(*) FROM {self.builder.table_name}")
-                return self.cursor.fetchone()[0]
+                        # Adjusted code to handle batch query execution
+                        batch_query = '{} WHERE id IN ({})'
+                        batch_query = batch_query.format(base_query, '{}')
+                        self.data = list(execute_batch_query(self.cursor, batch_query, self.keys))
+            def __len__(self):
+                return len(self.keys)
 
             def __getitem__(self, idx):
                 if not self.preload:
-                    self.cursor.execute(query + f" LIMIT 1 OFFSET {idx}", self.builder.parameters)
+                    # Correctly append 'WHERE id = ?' to the query
+                    key_query = f"{base_query} WHERE id = ?" 
+                    self.cursor.execute(key_query, (self.keys[idx],))
                     row = self.cursor.fetchone()
                 else:
                     row = self.data[idx]
@@ -209,7 +231,7 @@ class PSDELiaDatasetBuilder:
                 return tuple(res)
 
         return PSDELiaDataset(self)
-
+from copy import deepcopy
 class PSDELiaDataModule(pl.LightningDataModule):
     def __init__(self, database_path: Union[str, Path], batch_size: int = 64, num_workers: int = 1,
                  transform_psd: Callable = None, transform_face: Callable = None, 
@@ -220,20 +242,23 @@ class PSDELiaDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.val_split = val_split
-        self.builder = PSDELiaDatasetBuilder() \
+        self.builder_1 = PSDELiaDatasetBuilder() \
             .set_database_path(database_path) \
             .set_table_name(table_name) \
             .set_transform_psd(transform_psd) \
             .set_transform_face(transform_face) \
             .set_transform_direction(transform_direction) \
             .enable_preloading(preload).set_columns(columns)
+        self.builder_2 = deepcopy(self.builder_1)
 
     def setup(self,stage=None):
-        full_dataset = self.builder.build()
-        train_size = int(len(full_dataset) * (1 - self.val_split))
-        val_size = len(full_dataset) - train_size
-        self.train_dataset, self.val_dataset = random_split(full_dataset, [train_size, val_size])
-        self.test_dataset = self.builder.build()
+        tr_val_dataset = self.builder_1.add_condition("stage=?", ['training']).build()
+        test_dataset = self.builder_2.add_condition("stage=?", ['testing']).build()
+        train_size = int(len(tr_val_dataset) * (1 - self.val_split))
+        val_size = len(tr_val_dataset) - train_size
+        self.train_dataset, self.val_dataset = random_split(tr_val_dataset, [train_size, val_size])
+
+        self.test_dataset = test_dataset
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)
@@ -271,10 +296,14 @@ if __name__=='__main__':
         transform_direction=transform_direction,
         columns=[ 'PSD', 'direction', 'face']  # Customize as needed
     )
-    data_module.setup('fit')
+    data_module.setup()
     train_loader = data_module.train_dataloader()
     val_loader = data_module.val_dataloader()
+    test_loader = data_module.test_dataloader()
     for t in train_loader:
+        print(t)
+        break
+    for t in test_loader:
         print(t)
         break
 

@@ -6,6 +6,7 @@ from comet_ml.integration.sklearn import log_model as log_model_sklearn
 from comet_ml.integration.pytorch import log_model as log_model_pytorch
 from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 # define an abstract class for anomaly detection system 
 # so that we can use the same interface for all the systems
@@ -50,7 +51,7 @@ class AD_GMM(AD_system):
         features = []
         self.model.eval()
         with torch.no_grad():
-            for batch in dataloader:
+            for batch in tqdm(dataloader, desc="Loading data"):
                 data = batch
                 feature,_,_ = self.model(data)
                 feature = feature.detach().numpy()

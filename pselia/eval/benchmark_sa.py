@@ -178,17 +178,16 @@ if __name__=='__main__':
         .set_transform_psd(transform_psd)\
         .add_condition("stage=?", ['training'])\
         .set_columns(['PSD'])\
+        .enable_preloading()\
         .build()
     dl_feature = DataLoader(dl_feature, batch_size=20000, shuffle=False, num_workers=1)
     ds = PSDELiaDatasetBuilder()\
         .set_database_path(database_path)\
         .set_transform_psd(transform_psd)\
-        .set_transform_direction(transform_direction)\
-        .set_transform_face(transform_face)\
         .set_columns(['PSD','direction','face','date_time','stage','anomaly_description'])\
+        .build()
         
-    dl_all = DataLoader(ds, batch_size=20000, shuffle=False, num_workers=4)
-
+    dl_all = DataLoader(ds, batch_size=400000, shuffle=False, num_workers=1)
 
     ## loader model 
     model_paths = '/home/yacine/Documents/PhD/Code/GitProject/PBSHM_mdof/model/model_elia/best-epoch=99-val_loss=0.00.ckpt'
@@ -201,8 +200,8 @@ if __name__=='__main__':
     benchmark = Benchmark_SA(ad_system,dl_all)
     auc_dict, axs = benchmark.evaluate_all_systems(window=20)
     #plot boxplot for all sensors
+    print(auc_dict) 
     for ax in axs.values():
         ax.get_figure()
         plt.show()
         plt.close()
-        break
